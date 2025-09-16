@@ -59,7 +59,7 @@ secure-messenger/
 ├── go.mod                 # Go module definition
 ├── Makefile              # Build automation
 └── setup.sh              # Development setup script
-```ce
+```
 
 ### Technology Stack
 
@@ -88,10 +88,8 @@ secure-messenger/
 ### 1. Clone and Setup
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/raproid/go-messenger.git
 cd secure-messenger
-chmod +x setup.sh
-./setup.sh
 ```
 
 ### 2. Install Dependencies
@@ -147,10 +145,10 @@ The client stores configuration in `config.json` (project root):
 
 ```json
 {
-  "server_address": "localhost",
+  "server_address": "server",
   "server_port": 8080,
   "use_tls": true,
-  "server_name": "localhost",
+  "server_name": "server",
   "cert_path": "certs/server.crt"
 }
 ```
