@@ -153,6 +153,179 @@ The client stores configuration in `config.json` (project root):
 }
 ```
 
+## Architecture
+
+### High-level System Architecture
+```mermaid
+graph TB
+    subgraph "Client Side"
+        GUI[Fyne GUI Application]
+        Client[Network Client]
+        Crypto[Encryption Manager]
+        Session[Session Manager]
+        Config[Configuration]
+    end
+    
+    subgraph "Network Layer"
+        TLS[TLS/SSL Connection]
+        Protocol[JSON Protocol]
+    end
+    
+    subgraph "Server Side"
+        Server[Go Server]
+        Auth[Authentication Handler]
+        MsgHandler[Message Handler]
+        UserMgr[User Manager]
+    end
+    
+    subgraph "Data Layer"
+        SQLite[(SQLite Database)]
+        UserStore[User Store]
+        MsgStore[Message Store]
+    end
+    
+    GUI --> Client
+    Client --> Crypto
+    Client --> Session
+    Client --> Config
+    Client --> TLS
+    TLS --> Protocol
+    Protocol --> Server
+    Server --> Auth
+    Server --> MsgHandler
+    Server --> UserMgr
+    Auth --> UserStore
+    MsgHandler --> MsgStore
+    UserStore --> SQLite
+    MsgStore --> SQLite
+```
+
+### Detailed Component Architecture
+```mermaid
+graph LR
+    subgraph "Client Application"
+        subgraph "GUI Layer"
+            LoginWin[Login Window]
+            ChatWin[Chat Window]
+            CertWin[Certificate Window]
+            ServerConfig[Server Config Window]
+        end
+        
+        subgraph "Client Core"
+            NetworkClient[Network Client]
+            SessionMgr[Session Manager]
+            Config[Config Manager]
+        end
+        
+        subgraph "Crypto Layer"
+            KeyMgr[Key Manager]
+            EncryptMgr[Encryption Manager]
+            PasswordUtils[Password Utils]
+        end
+    end
+    
+    subgraph "Network Communication"
+        TLS[TLS Connection]
+        JSON[JSON Protocol]
+    end
+    
+    subgraph "Server Application"
+        subgraph "Server Core"
+            MainServer[Main Server]
+            ConnHandler[Connection Handler]
+        end
+        
+        subgraph "Business Logic"
+            AuthHandler[Auth Handler]
+            MsgHandler[Message Handler]
+            UserManager[User Manager]
+        end
+        
+        subgraph "Data Access"
+            Database[Database Layer]
+            UserStore[User Store]
+            MsgStore[Message Store]
+        end
+    end
+    
+    subgraph "Storage"
+        SQLite[(SQLite Database)]
+    end
+    
+    LoginWin --> NetworkClient
+    ChatWin --> NetworkClient
+    CertWin --> NetworkClient
+    ServerConfig --> Config
+    
+    NetworkClient --> SessionMgr
+    NetworkClient --> KeyMgr
+    NetworkClient --> EncryptMgr
+    
+    NetworkClient --> TLS
+    TLS --> JSON
+    JSON --> MainServer
+    
+    MainServer --> ConnHandler
+    ConnHandler --> AuthHandler
+    ConnHandler --> MsgHandler
+    ConnHandler --> UserManager
+    
+    AuthHandler --> UserStore
+    MsgHandler --> MsgStore
+    UserManager --> UserStore
+    
+    UserStore --> Database
+    MsgStore --> Database
+    Database --> SQLite
+```
+
+### Security & Data Flow Architecture
+```mermaid
+sequenceDiagram
+    participant User as User
+    participant GUI as GUI Client
+    participant Client as Network Client
+    participant Crypto as Encryption
+    participant Server as Server
+    participant DB as Database
+    
+    Note over User,DB: Authentication Flow
+    User->>GUI: Enter credentials
+    GUI->>Client: Login request
+    Client->>Crypto: Hash password
+    Crypto-->>Client: Hashed password
+    Client->>Server: TLS encrypted login
+    Server->>DB: Verify credentials
+    DB-->>Server: User data + public key
+    Server-->>Client: Auth token + user info
+    Client->>Crypto: Store session
+    Crypto-->>Client: Session stored
+    Client-->>GUI: Login success
+    
+    Note over User,DB: Message Encryption Flow
+    User->>GUI: Type message
+    GUI->>Client: Send message
+    Client->>Crypto: Encrypt with recipient's public key
+    Note over Crypto: RSA + AES hybrid encryption
+    Crypto-->>Client: Encrypted message
+    Client->>Server: TLS encrypted message
+    Server->>DB: Store encrypted message
+    DB-->>Server: Message stored
+    Server-->>Client: Message sent confirmation
+    
+    Note over User,DB: Message Decryption Flow
+    Server->>Client: New message notification
+    Client->>Server: Request message
+    Server->>DB: Retrieve encrypted message
+    DB-->>Server: Encrypted message
+    Server-->>Client: Encrypted message
+    Client->>Crypto: Decrypt with private key
+    Note over Crypto: RSA + AES hybrid decryption
+    Crypto-->>Client: Decrypted message
+    Client-->>GUI: Display message
+    GUI-->>User: Show message
+```
+
 ## 🛠️ Development
 
 ### Available Make Commands
